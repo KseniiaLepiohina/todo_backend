@@ -26,26 +26,26 @@ let TaskController = class TaskController {
     async create(createTaskDto, req) {
         console.log('req.user:', req.user);
         console.log('DTO from body:', createTaskDto);
-        const userId = req.user?.id;
-        if (!userId)
+        const user_id = req.user?.id;
+        if (!user_id)
             throw new common_1.UnauthorizedException('User not found in request');
-        return await this.taskService.createTask(createTaskDto, userId);
+        return await this.taskService.createTask(createTaskDto, user_id);
     }
     async findActiveTasks(req) {
-        const userId = req.user?.id;
-        if (!userId)
+        const user_id = req.user?.id;
+        if (!user_id)
             throw new common_1.UnauthorizedException('User not found in request');
-        return await this.taskService.findAllActiveTasks(userId);
+        return await this.taskService.findAllActiveTasks(user_id);
     }
     async updateActiveTask(id, dto) {
         return await this.taskService.updateActiveTask(id, dto);
     }
-    async deleteActiveTask(taskId, userId) {
-        return await this.taskService.deleteActiveTask(taskId, userId);
+    async deleteActiveTask(task_id, user_id) {
+        return await this.taskService.deleteActiveTask(task_id, user_id);
     }
     ;
-    async newCompletedTask(taskId, userId) {
-        return await this.taskService.sendToCompletedTask(userId, taskId);
+    async newCompletedTask(task_id, user_id) {
+        return await this.taskService.sendToCompletedTask(user_id, task_id);
     }
     async findCompletedTasks() {
         return await this.taskService.findAllCompletedTasks();
@@ -54,8 +54,8 @@ let TaskController = class TaskController {
     async updateCompletedTask(id, title, description) {
         return await this.taskService.updateCompletedTask(id, title, description);
     }
-    async deleteCompletedTask(taskId, userId) {
-        return await this.taskService.deleteCompletedTask(taskId, userId);
+    async deleteCompletedTask(task_id, user_id) {
+        return await this.taskService.deleteCompletedTask(task_id, user_id);
     }
 };
 exports.TaskController = TaskController;
@@ -94,8 +94,8 @@ __decorate([
 ], TaskController.prototype, "deleteActiveTask", null);
 __decorate([
     (0, common_1.Post)('/completed/:userId/:taskId'),
-    __param(0, (0, common_1.Param)('taskId')),
-    __param(1, (0, common_1.Param)('userId')),
+    __param(0, (0, common_1.Param)('task_id')),
+    __param(1, (0, common_1.Param)('user_id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Number]),
     __metadata("design:returntype", Promise)
@@ -117,8 +117,8 @@ __decorate([
 ], TaskController.prototype, "updateCompletedTask", null);
 __decorate([
     (0, common_1.Delete)('completed/delete/:taskId/:userId'),
-    __param(0, (0, common_1.Param)('taskId')),
-    __param(1, (0, common_1.Param)('userId')),
+    __param(0, (0, common_1.Param)('task_id')),
+    __param(1, (0, common_1.Param)('user_id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Number]),
     __metadata("design:returntype", Promise)

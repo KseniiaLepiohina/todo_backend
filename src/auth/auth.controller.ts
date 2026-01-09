@@ -9,7 +9,6 @@ export class AuthController {
   @Post('signUp')
   async createUser(
     @Body() createAuthDto: CreateAuthDto) {
-      console.log(createAuthDto);
     return await this.authService.signUpUser(createAuthDto);
   }
 @Post('login')
@@ -20,16 +19,13 @@ async loginUser(@Body() createAuthDto: CreateAuthDto) {
     id: user.user.id,
     username: user.user.username,
     token: user.token,
-  };
-  console.log(user);
-  
+  };  
 }
 
 @Get('username')
 async findUserByUsername(@Query('username') username:string) {
   return this.authService.findOneUser(username);
 }
-
 
   @Get()
   async findAll() {

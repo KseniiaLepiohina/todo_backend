@@ -20,15 +20,22 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forRoot({
-                type: 'postgres',
-                host: 'localhost',
-                port: 5433,
-                username: 'postgres',
-                password: 'north0902',
-                database: 'ToDoList',
-                autoLoadEntities: true,
-                synchronize: true,
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+            }),
+            typeorm_1.TypeOrmModule.forRootAsync({
+                imports: [config_1.ConfigModule],
+                inject: [config_1.ConfigService],
+                useFactory: (configService) => ({
+                    type: 'postgres',
+                    url: configService.get('DB_URI') || '',
+                    autoLoadEntities: true,
+                    synchronize: false,
+                    logging: true,
+                    ssl: {
+                        rejectUnauthorized: false,
+                    }
+                })
             }),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,

@@ -27,15 +27,15 @@ let TaskService = class TaskService {
         this.dataSource = dataSource;
         this.CompletedTasksRepository = CompletedTasksRepository;
     }
-    async createTask(createTaskDto, userId) {
+    async createTask(createTaskDto, user_id) {
         try {
-            console.log('Creating task with:', { userId, ...createTaskDto });
+            console.log('Creating task with:', { user_id, ...createTaskDto });
             const newTask = await this.dataSource
                 .createQueryBuilder()
                 .insert()
                 .into(ActiveTasks_entity_1.ActiveTasks)
                 .values([{
-                    userId: userId,
+                    user_id: user_id,
                     title: createTaskDto.title ?? 'Untitled task',
                     description: createTaskDto.description ?? ''
                 }])
@@ -49,7 +49,7 @@ let TaskService = class TaskService {
             throw new common_1.HttpException('Failed to create task', common_1.HttpStatus.BAD_REQUEST);
         }
     }
-    async findAllActiveTasks(userId) {
+    async findAllActiveTasks(user_id) {
         try {
             const tasks = await this.dataSource
                 .createQueryBuilder(ActiveTasks_entity_1.ActiveTasks, 'task')
@@ -61,7 +61,7 @@ let TaskService = class TaskService {
                 'task.createdAt',
             ])
                 .where('task.completed = :completed', { completed: false })
-                .andWhere('task.userId = :userId', { userId })
+                .andWhere('task.userId = :user_id', { user_id })
                 .getMany();
             return tasks;
         }
@@ -90,16 +90,16 @@ let TaskService = class TaskService {
             throw new common_1.HttpException('Task not updated', 400);
         }
     }
-    async deleteActiveTask(taskId, userId) {
+    async deleteActiveTask(task_id, user_id) {
         try {
             const result = await this.dataSource
                 .createQueryBuilder()
                 .delete()
                 .from(ActiveTasks_entity_1.ActiveTasks)
-                .where('taskId = :taskId AND userId = :userId', { taskId, userId })
+                .where('task_id = :task_id AND user_id = :user_id', { task_id, user_id })
                 .execute();
             if (!result.affected) {
-                throw new common_1.NotFoundException(`Task ${taskId} not found for user ${userId}`);
+                throw new common_1.NotFoundException(`Task ${task_id} not found for user ${user_id}`);
             }
             return { message: 'Task successfully deleted' };
         }
@@ -107,40 +107,36 @@ let TaskService = class TaskService {
             throw new common_1.HttpException('Task deletion failed', 500);
         }
     }
-    async sendToCompletedTask(userId, taskId) {
-        try {
-            const activeTask = await this.dataSource
-                .createQueryBuilder(ActiveTasks_entity_1.ActiveTasks, 'a')
-                .where('a.taskId = :taskId', { taskId })
-                .andWhere('a.userId = :userId', { userId })
-                .andWhere('a.completed = false')
-                .getOne();
-            if (!activeTask) {
-                throw new common_1.HttpException('Task not found or already completed', 404);
-            }
-            const completedTask = await this.dataSource.createQueryBuilder()
-                .insert()
-                .into(CompletedTasks_entity_1.CompletedTasks)
-                .values({
-                title: activeTask.title,
-                description: activeTask.description,
-                completed: true,
-                userId: activeTask.userId
-            })
-                .returning('*')
-                .execute();
-            await this.dataSource
-                .createQueryBuilder()
-                .delete()
-                .from(ActiveTasks_entity_1.ActiveTasks)
-                .where('taskId = :id', { taskId })
-                .andWhere('userId = :userId', { userId })
-                .execute();
-            return completedTask.raw[0];
+    async sendToCompletedTask(user_id, task_id) {
+        const activeTask = await this.dataSource
+            .createQueryBuilder(ActiveTasks_entity_1.ActiveTasks, 'a')
+            .where('a.completed = false')
+            .andWhere('a.task_id = :task_id', { task_id })
+            .andWhere('a.userId = :userId', { user_id })
+            .getOne();
+        if (!activeTask) {
+            throw new common_1.NotFoundException('Task not found or already completed');
         }
-        catch (error) {
-            throw new common_1.HttpException('Failed to transfer to completed tasks', 500);
-        }
+        const completedTask = await this.dataSource
+            .createQueryBuilder()
+            .insert()
+            .into(CompletedTasks_entity_1.CompletedTasks)
+            .values({
+            title: activeTask.title,
+            description: activeTask.description,
+            completed: true,
+            user_id: activeTask.user_id,
+            completedAt: new Date(),
+        })
+            .returning('*')
+            .execute();
+        await this.dataSource
+            .createQueryBuilder()
+            .delete()
+            .from(ActiveTasks_entity_1.ActiveTasks)
+            .where('task_id = :id', { id: activeTask.task_id })
+            .execute();
+        return completedTask.raw[0];
     }
     async findAllCompletedTasks() {
         try {
@@ -152,11 +148,9 @@ let TaskService = class TaskService {
                 'task.description',
                 'task.completed',
                 'task.completedAt',
-                'task.userId',
+                'task.user_id',
             ])
-                .where('task.completed =:true', {
-                completed: true
-            })
+                .where('task.completed = :completed', { completed: true })
                 .getMany();
             return tasks;
         }
@@ -182,16 +176,16 @@ let TaskService = class TaskService {
             throw new common_1.HttpException('Completed task not updated', 400);
         }
     }
-    async deleteCompletedTask(taskId, userId) {
+    async deleteCompletedTask(task_id, user_id) {
         try {
             const deletedTask = await this.dataSource
                 .createQueryBuilder()
                 .delete()
                 .from(CompletedTasks_entity_1.CompletedTasks)
-                .where('id = :taskId AND userId = :userId')
+                .where('id = :task_id AND user_id = :user_id')
                 .execute();
             if (deletedTask.affected === 0) {
-                throw new common_1.NotFoundException(`Task with id ${taskId} not found for user ${userId}`);
+                throw new common_1.NotFoundException(`Task with id ${task_id} not found for user ${user_id}`);
             }
             return { message: 'Task successfully deleted' };
         }

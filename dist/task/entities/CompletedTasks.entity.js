@@ -19,7 +19,7 @@ let CompletedTasks = class CompletedTasks {
     completed;
     completedAt;
     user;
-    userId;
+    user_id;
 };
 exports.CompletedTasks = CompletedTasks;
 __decorate([
@@ -49,7 +49,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], CompletedTasks.prototype, "userId", void 0);
+], CompletedTasks.prototype, "user_id", void 0);
 exports.CompletedTasks = CompletedTasks = __decorate([
     (0, typeorm_1.Entity)('completed_tasks')
 ], CompletedTasks);

@@ -22,7 +22,6 @@ let AuthController = class AuthController {
         this.authService = authService;
     }
     async createUser(createAuthDto) {
-        console.log(createAuthDto);
         return await this.authService.signUpUser(createAuthDto);
     }
     async loginUser(createAuthDto) {
@@ -32,7 +31,6 @@ let AuthController = class AuthController {
             username: user.user.username,
             token: user.token,
         };
-        console.log(user);
     }
     async findUserByUsername(username) {
         return this.authService.findOneUser(username);

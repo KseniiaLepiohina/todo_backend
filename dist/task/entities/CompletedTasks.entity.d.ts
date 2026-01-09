@@ -6,5 +6,5 @@ export declare class CompletedTasks {
     completed: boolean;
     completedAt: Date;
     user: Auth;
-    userId: number;
+    user_id: number;
 }

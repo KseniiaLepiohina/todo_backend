@@ -42,6 +42,6 @@ __decorate([
     __metadata("design:type", Array)
 ], Auth.prototype, "completedTasks", void 0);
 exports.Auth = Auth = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)('users')
 ], Auth);
 //# sourceMappingURL=auth.entity.js.map

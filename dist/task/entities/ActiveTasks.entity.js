@@ -13,19 +13,19 @@ exports.ActiveTasks = void 0;
 const auth_entity_1 = require("../../auth/entities/auth.entity");
 const typeorm_1 = require("typeorm");
 let ActiveTasks = class ActiveTasks {
-    taskId;
+    task_id;
     title;
     description;
     completed;
     createdAt;
     user;
-    userId;
+    user_id;
 };
 exports.ActiveTasks = ActiveTasks;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
-], ActiveTasks.prototype, "taskId", void 0);
+], ActiveTasks.prototype, "task_id", void 0);
 __decorate([
     (0, typeorm_1.Column)({
         nullable: true
@@ -54,8 +54,8 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], ActiveTasks.prototype, "userId", void 0);
+], ActiveTasks.prototype, "user_id", void 0);
 exports.ActiveTasks = ActiveTasks = __decorate([
-    (0, typeorm_1.Entity)('active-tasks')
+    (0, typeorm_1.Entity)('active_tasks')
 ], ActiveTasks);
 //# sourceMappingURL=ActiveTasks.entity.js.map

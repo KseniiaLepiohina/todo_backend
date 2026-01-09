@@ -8,16 +8,16 @@ export declare class TaskService {
     private readonly dataSource;
     private CompletedTasksRepository;
     constructor(ActiveTasksRepository: Repository<ActiveTasks>, dataSource: DataSource, CompletedTasksRepository: Repository<CompletedTasks>);
-    createTask(createTaskDto: CreateTaskDto, userId: number): Promise<any>;
-    findAllActiveTasks(userId: number): Promise<ActiveTasks[]>;
+    createTask(createTaskDto: CreateTaskDto, user_id: number): Promise<any>;
+    findAllActiveTasks(user_id: number): Promise<ActiveTasks[]>;
     updateActiveTask(id: number, dto: UpdateTaskDto): Promise<any>;
-    deleteActiveTask(taskId: number, userId: number): Promise<{
+    deleteActiveTask(task_id: number, user_id: number): Promise<{
         message: string;
     }>;
-    sendToCompletedTask(userId: number, taskId: number): Promise<any>;
+    sendToCompletedTask(user_id: number, task_id: number): Promise<any>;
     findAllCompletedTasks(): Promise<CompletedTasks[]>;
     updateCompletedTask(id: number, title: string, description: string): Promise<any>;
-    deleteCompletedTask(taskId: number, userId: number): Promise<{
+    deleteCompletedTask(task_id: number, user_id: number): Promise<{
         message: string;
     }>;
 }
