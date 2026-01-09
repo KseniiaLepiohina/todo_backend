@@ -1,8 +1,8 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ActiveTasks } from './entities/ActiveTasks.entity';
 import { CompletedTasks } from './entities/CompletedTasks.entity';
 
@@ -11,91 +11,200 @@ export class TaskService {
   constructor(
     @InjectRepository(ActiveTasks)
     private ActiveTasksRepository: Repository<ActiveTasks>,
-
+private readonly dataSource:DataSource,
     @InjectRepository(CompletedTasks)
     private CompletedTasksRepository: Repository<CompletedTasks>,
   ) {}
 
   // === Active Tasks ===
-  async createTask(createTaskDto: CreateTaskDto) {
-    const newTask = this.ActiveTasksRepository.create({
-      title: createTaskDto.title,
-      description: createTaskDto.description,
-      user: { id: createTaskDto.userId } as any, // прив’язка по id
-    });
+async createTask(createTaskDto: CreateTaskDto, user_id: number) {
+  try {
+    console.log('Creating task with:', { user_id, ...createTaskDto });
 
-    return await this.ActiveTasksRepository.save(newTask);
+    const newTask = await this.dataSource
+      .createQueryBuilder()
+      .insert()
+      .into(ActiveTasks)
+      .values([{
+        user_id:user_id,
+        title: createTaskDto.title ?? 'Untitled task',
+        description: createTaskDto.description ?? ''
+      }])
+      .returning('*')
+      .execute();
+
+    console.log('Inserted task:', newTask.raw[0]);
+    return newTask.raw[0];
+  } catch (error) {
+    console.error('Error creating task:', error);
+    throw new HttpException('Failed to create task', HttpStatus.BAD_REQUEST);
   }
+}
+async findAllActiveTasks(user_id: number) {
+  try {
+    const tasks = await this.dataSource
+      .createQueryBuilder(ActiveTasks, 'task')
+      .select([
+        'task.taskId',
+        'task.title',
+        'task.description',
+        'task.completed',
+        'task.createdAt',
+      ])
+      .where('task.completed = :completed', { completed: false })
+      .andWhere('task.userId = :user_id', { user_id })
+      .getMany();
 
-  async findAllActiveTasks() {
-    const activeTasks = await this.ActiveTasksRepository.find({
-      where: { status: 'active' },
-      relations: ['user'],
-    });
+    return tasks;
+  } catch (error) {
+    throw new HttpException('Failed to fetch all active tasks', 500);
+  }
+}
 
-    if (!activeTasks.length) {
-      throw new HttpException('Active tasks not found', HttpStatus.NOT_FOUND);
+
+async updateActiveTask(id: number, dto: UpdateTaskDto) {
+  try {
+    const result = await this.dataSource
+      .createQueryBuilder()
+      .update(ActiveTasks)
+      .set({
+        title: dto.title,
+        description: dto.description,
+      })
+      .where('taskId = :id', { id })
+      .returning('*')
+      .execute();
+
+    if (!result.affected) {
+      throw new NotFoundException(`Task ${id} not found`);
     }
 
-    return activeTasks;
+    return result.raw[0];
+  } catch {
+    throw new HttpException('Task not updated', 400);
   }
+}
 
-  async updateActiveTask(id: number, updateActiveTaskDto: UpdateTaskDto) {
-    const task = await this.ActiveTasksRepository.findOne({ where: { id } });
 
-    if (!task) {
-      throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
-    }
 
-    Object.assign(task, updateActiveTaskDto);
-    return await this.ActiveTasksRepository.save(task);
-  }
+ async deleteActiveTask(task_id: number, user_id: number) {
+  try {
+    const result = await this.dataSource
+      .createQueryBuilder()
+      .delete()
+      .from(ActiveTasks)
+      .where('task_id = :task_id AND user_id = :user_id', { task_id, user_id })
+      .execute();
 
-  async deleteActiveTask(id: number) {
-    const task = await this.ActiveTasksRepository.findOne({ where: { id } });
-
-    if (!task) {
-      throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
-    }
-
-    return await this.ActiveTasksRepository.remove(task);
-  }
-
-  // === Completed Tasks ===
-  async findAllCompletedTasks() {
-    const completedTasks = await this.CompletedTasksRepository.find({
-      where: { status: 'completed' },
-      relations: ['user'],
-    });
-
-    if (!completedTasks.length) {
-      throw new HttpException(
-        'Completed tasks not found',
-        HttpStatus.NOT_FOUND,
+    if (!result.affected) {
+      throw new NotFoundException(
+        `Task ${task_id} not found for user ${user_id}`
       );
     }
 
-    return completedTasks;
+    return { message: 'Task successfully deleted' };
+  } catch {
+    throw new HttpException('Task deletion failed', 500);
+  }
+}
+
+
+  // === Completed Tasks ===
+
+
+async sendToCompletedTask(user_id: number, task_id: number) {
+  const activeTask = await this.dataSource
+    .createQueryBuilder(ActiveTasks, 'a')
+    .where('a.completed = false')
+    .andWhere('a.task_id = :task_id', { task_id })
+    .andWhere('a.userId = :userId', { user_id })
+    .getOne();
+
+  if (!activeTask) {
+    throw new NotFoundException('Task not found or already completed');
   }
 
-  async updateCompletedTask(id: number, updateCompletedTaskDto: UpdateTaskDto) {
-    const task = await this.CompletedTasksRepository.findOne({ where: { id } });
+  const completedTask = await this.dataSource
+    .createQueryBuilder()
+    .insert()
+    .into(CompletedTasks)
+    .values({
+      title: activeTask.title,
+      description: activeTask.description,
+      completed: true,
+      user_id: activeTask.user_id,
+      completedAt: new Date(),
+    })
+    .returning('*')
+    .execute();
 
-    if (!task) {
-      throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
+  await this.dataSource
+    .createQueryBuilder()
+    .delete()
+    .from(ActiveTasks)
+    .where('task_id = :id', { id: activeTask.task_id })
+    .execute();
+
+  return completedTask.raw[0];
+}
+
+
+  async findAllCompletedTasks() {
+  try{
+    const tasks = await this.dataSource
+    .createQueryBuilder(CompletedTasks,'task')
+    .select([
+  'task.id',
+  'task.title',
+  'task.description',
+  'task.completed',
+  'task.completedAt',
+  'task.user_id',
+    ])
+    .where('task.completed = :completed', { completed: true })
+    .getMany();
+    return tasks;
+   }catch(error) {
+    throw new HttpException('Failed to fetch all completed tasks',500)
+   }
+  }
+
+async updateCompletedTask(id: number, title: string, description: string) {
+  try {
+    const result = await this.dataSource
+      .createQueryBuilder()
+      .update(CompletedTasks)
+      .set({ title, description })
+      .where('id = :id', { id })
+      .returning('*')
+      .execute();
+
+    if (!result.affected) {
+      throw new NotFoundException(`Completed task ${id} not found`);
     }
+    return result.raw[0];
+  } catch {
+    throw new HttpException('Completed task not updated', 400);
+  }
+}
 
-    Object.assign(task, updateCompletedTaskDto);
-    return await this.CompletedTasksRepository.save(task);
+async deleteCompletedTask(task_id:number, user_id:number) {
+    try{
+    const deletedTask = await this.dataSource
+        .createQueryBuilder()
+        .delete()
+        .from(CompletedTasks)
+        .where('id = :task_id AND user_id = :user_id')
+        .execute();
+        if(deletedTask.affected === 0) {
+          throw new NotFoundException(
+            `Task with id ${task_id} not found for user ${user_id}`
+          );
+        }
+        return {message: 'Task successfully deleted'};
+    }catch(error) {
+      throw new HttpException('Task deletion failed',500)
+    } 
   }
 
-  async deleteCompletedTask(id: number) {
-    const task = await this.CompletedTasksRepository.findOne({ where: { id } });
-
-    if (!task) {
-      throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
-    }
-
-    return await this.CompletedTasksRepository.remove(task);
-  }
 }

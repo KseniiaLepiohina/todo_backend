@@ -1,26 +1,26 @@
 import { Auth } from "src/auth/entities/auth.entity";
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
-@Entity()
+@Entity('completed_tasks')
 export class CompletedTasks {
 
   @PrimaryGeneratedColumn()
   id: number;
-  @Column()
-  uuid: string;
-
+ 
   @Column()
   title: string;
 
   @Column()
   description: string;
 
-  @Column({ default: 'completed' })
-  status: string;
+  @Column({ default: false })
+  completed: boolean;
 
-  @CreateDateColumn({ type: 'timestamp with time zone' })
+  @Column({ type: 'timestamp',default:()=> 'CURRENT_TIMESTAMP' })
   completedAt: Date;
 
-  @ManyToOne(() => Auth, (auth) => auth.tasks,{ onDelete: 'CASCADE' })
+  @ManyToOne(() => Auth, (auth) => auth.completedTasks,{ onDelete: 'CASCADE' })
   user: Auth;
+  @Column()
+  user_id: number;
 }

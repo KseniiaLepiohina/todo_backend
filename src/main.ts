@@ -12,7 +12,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist:true,
+    forbidNonWhitelisted:true,
+    transform:true
+  }));
 
   await app.listen(5000);
 }

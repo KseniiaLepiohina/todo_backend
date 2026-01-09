@@ -4,11 +4,14 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Auth } from './entities/auth.entity';
 import { Repository } from 'typeorm';
+import jwt from 'jsonwebtoken';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(Auth) private authRepository: Repository<Auth>,
+    private configService:ConfigService
   ) {}
 
   async signUpUser(createAuthDto: CreateAuthDto) {
@@ -44,34 +47,54 @@ export class AuthService {
     }
   }
 
-  async loginUser(createAuthDto: CreateAuthDto) {
-    const { username, password } = createAuthDto;
+  // auth.service.ts
+async loginUser(dto: CreateAuthDto) {
+  const { username, password } = dto;
 
-    // знайти користувача лише по username
-    const user = await this.authRepository.findOne({
-      where: { username },
-    });
+  // Знаходимо користувача по username
+  const user = await this.authRepository.findOne({ where: { username } });
 
-    if (!user) {
-      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-    }
-
-    // порівняння пароля з bcrypt
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-    }
-
-    return user;
+  if (!user) {
+    throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
   }
+
+  if (!user.password) {
+    throw new HttpException('User has no password set', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  // Порівняння пароля
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+  }
+
+  if (!process.env.JWT_SECRET) {
+    throw new HttpException('JWT secret not set', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  // Генеруємо токен
+  const jwtSecret = this.configService.get<string>('JWT_SECRET');
+  if (!jwtSecret) {
+    throw new HttpException('JWT secret not set', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  const token = jwt.sign(
+    { id: user.id, username: user.username },
+    jwtSecret,
+    { expiresIn: '7d' }
+  );
+
+  return { token, user };
+}
+
 
   async findAllUsers() {
     return await this.authRepository.find();
   }
 
-  async findOneUser(id: number) {
+  async findOneUser(username:string) {
     try {
-      const findOneUser = await this.authRepository.findOne({ where: { id } });
+      const findOneUser = await this.authRepository.findOne({ where: { username } });
       if (!findOneUser) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
@@ -83,4 +106,6 @@ export class AuthService {
       );
     }
   }
+  
+ 
 }
