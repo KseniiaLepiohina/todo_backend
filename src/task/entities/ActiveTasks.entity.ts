@@ -6,26 +6,22 @@ export class ActiveTasks {
   @PrimaryGeneratedColumn()
   task_id: number;
 
-  @Column({
-    nullable:true
-  })
+  @Column({nullable:true})
   title: string;
 
-  @Column({
-    nullable:true
-  })
+  @Column({nullable:true})
   description: string;
 
   @Column({ default: false })
   completed: boolean;
 
-  @Column({ type: 'timestamp',default:()=> 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
   
   @ManyToOne(() => Auth, (auth) => auth.activeTasks, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: Auth;
   
-  @Column()
+  @Column({name:'user_id'})
   user_id: number;
 }

@@ -1,5 +1,5 @@
 import { Auth } from "src/auth/entities/auth.entity";
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('completed_tasks')
 export class CompletedTasks {
@@ -16,11 +16,12 @@ export class CompletedTasks {
   @Column({ default: false })
   completed: boolean;
 
-  @Column({ type: 'timestamp',default:()=> 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp' })
   completedAt: Date;
 
   @ManyToOne(() => Auth, (auth) => auth.completedTasks,{ onDelete: 'CASCADE' })
+  @JoinColumn({name:'userId'})
   user: Auth;
-  @Column()
+  @Column({name:'userId'})
   user_id: number;
 }

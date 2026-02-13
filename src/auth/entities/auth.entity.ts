@@ -4,7 +4,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('users')
 export class Auth {
-  @PrimaryGeneratedColumn()
+@PrimaryGeneratedColumn({ type: 'integer', name: 'id' })
   id: number;
   @Column({ unique: true })
   username: string;
