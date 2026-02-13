@@ -9,7 +9,7 @@ async function bootstrap() {
   // app.setGlobalPrefix('sidebar');
 
   app.enableCors({
-    origin: 'https://to-do-app-frontend-zeta.vercel.app',
+    origin: ['https://to-do-app-frontend-zeta.vercel.app','http://localhost:3000'], 
     methods:'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
