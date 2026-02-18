@@ -70,6 +70,7 @@ __decorate([
 ], TaskController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)('active'),
+    (0, common_1.UseGuards)(jwt_guard_1.JwtGuard),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),

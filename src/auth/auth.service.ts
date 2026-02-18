@@ -19,7 +19,6 @@ export class AuthService {
     const { username, password } = createAuthDto;
 
     try {
-      // 1. Check uniqueness (Must call .getOne()!)
       const existingUser = await this.dataSource
         .getRepository(Auth)
         .createQueryBuilder('user')
@@ -30,7 +29,6 @@ export class AuthService {
         throw new HttpException('User already exists', HttpStatus.CONFLICT);
       }
 
-      // 2. Hash and Insert
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const result = await this.dataSource
@@ -40,10 +38,8 @@ export class AuthService {
         .values({ username, password: hashedPassword })
         .execute();
 
-      // The 'result' contains the generated ID
       const userId = result.identifiers[0].id;
 
-      // 3. Generate Token
       const jwtSecret = this.configService.get<string>('JWT_SECRET');
       if (!jwtSecret) {
         throw new HttpException('JWT_SECRET is not configured', HttpStatus.INTERNAL_SERVER_ERROR);

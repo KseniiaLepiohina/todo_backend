@@ -1,18 +1,21 @@
 import { Controller, Get, Post, Body, Param, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
+ @ApiBearerAuth('token')
   @Post('signUp')
   async createUser(
-    @Body() createAuthDto: CreateAuthDto) {
+     @Body()createAuthDto:CreateAuthDto
+  ) {
     return await this.authService.signUpUser(createAuthDto);
   }
+   @ApiBearerAuth('token')
 @Post('login')
-async loginUser(@Body() createAuthDto: CreateAuthDto) {
+async loginUser( @Body()createAuthDto:CreateAuthDto) {
   const user = await this.authService.loginUser(createAuthDto);
 
   return {

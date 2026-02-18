@@ -3,6 +3,7 @@ import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { JwtGuard } from 'src/jwt.guard';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @Controller('task')
 export class TaskController {
@@ -21,13 +22,15 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
 }
 
   @Get('active')
-  // @UseGuards(JwtGuard)
+ @UseGuards(JwtGuard)
+ @ApiBearerAuth('token')
+ @ApiOperation({ summary: 'Retrieve all active tasks for the logged-in user' })
   async findActiveTasks(@Req() req) {
     const user_id = req.user?.id;
     if (!user_id) throw new UnauthorizedException('User not found in request');
     return await this.taskService.findAllActiveTasks(user_id);
   }
-
+ @ApiBearerAuth('token')
   @Patch('active/update/:id')
   async updateActiveTask(
     @Param('id') id: number,
@@ -35,7 +38,7 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
   ) {
     return await this.taskService.updateActiveTask(id, dto);
   }
-
+ @ApiBearerAuth('token')
   @Delete('active/delete/:taskId/:userId')
   async deleteActiveTask(
     @Param('taskId') task_id: number,
@@ -43,7 +46,7 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
   ) {
     return await this.taskService.deleteActiveTask(task_id, user_id);
   };
-
+ @ApiBearerAuth('token')
 @Post('/completed/:userId/:taskId') 
 async newCompletedTask (
 @Param('task_id') task_id:number,
@@ -51,7 +54,7 @@ async newCompletedTask (
 ) {
   return await this.taskService.sendToCompletedTask(user_id,task_id)
 }
-
+ @ApiBearerAuth('token')
   @Get('completed/find')
   async findCompletedTasks() {
     return await this.taskService.findAllCompletedTasks();
@@ -65,7 +68,7 @@ async updateCompletedTask(
 ) {
    return await this.taskService.updateCompletedTask(id,title,description);
   }
-
+ @ApiBearerAuth('token')
   @Delete('completed/delete/:taskId/:userId')
   async deleteCompletedTask(
     @Param('task_id') task_id: number,

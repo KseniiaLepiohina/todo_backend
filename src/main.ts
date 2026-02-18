@@ -18,11 +18,21 @@ async function bootstrap() {
   .setDescription('The todolist API Description')
   .setVersion('1.0')
   .addTag('to do')
+  .addBearerAuth(
+    {
+      type:'http',
+      scheme:'bearer',
+      bearerFormat:'JWT',
+      name:'JWT',
+      description:'Enter JWT token',
+      in:'header',
+    },
+  'token'
+  )
   .build()
 
   const documentFactory = () => SwaggerModule.createDocument(app,config);
   SwaggerModule.setup('api', app, documentFactory);
-
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist:true,
