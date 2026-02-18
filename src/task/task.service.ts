@@ -45,14 +45,14 @@ async findAllActiveTasks(user_id: number) {
     const tasks = await this.dataSource
       .createQueryBuilder(ActiveTasks, 'task')
       .select([
-        'task.taskId',
+        'task.task_id',
         'task.title',
         'task.description',
         'task.completed',
         'task.createdAt',
       ])
       .where('task.completed = :completed', { completed: false })
-      .andWhere('task.userId = :user_id', { user_id })
+      .andWhere('task.user_id = :user_id', { user_id })
       .getMany();
 
     return tasks;
@@ -71,7 +71,7 @@ async updateActiveTask(id: number, dto: UpdateTaskDto) {
         title: dto.title,
         description: dto.description,
       })
-      .where('taskId = :id', { id })
+      .where('task_id = :id', { id })
       .returning('*')
       .execute();
 

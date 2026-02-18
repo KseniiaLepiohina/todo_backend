@@ -3,7 +3,11 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
-    createUser(createAuthDto: CreateAuthDto): Promise<import("./entities/auth.entity").Auth>;
+    createUser(createAuthDto: CreateAuthDto): Promise<{
+        message: string;
+        token: string;
+        userId: any;
+    }>;
     loginUser(createAuthDto: CreateAuthDto): Promise<{
         id: number;
         username: string;

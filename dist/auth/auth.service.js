@@ -25,53 +25,67 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = require("@nestjs/config");
 let AuthService = class AuthService {
     authRepository;
+    dataSource;
     configService;
-    constructor(authRepository, configService) {
+    constructor(authRepository, dataSource, configService) {
         this.authRepository = authRepository;
+        this.dataSource = dataSource;
         this.configService = configService;
     }
     async signUpUser(createAuthDto) {
         const { username, password } = createAuthDto;
-        const existingUser = await this.authRepository.findOne({
-            where: { username },
-        });
-        if (existingUser) {
-            throw new common_1.HttpException('User already exists', common_1.HttpStatus.CONFLICT);
-        }
         try {
+            const existingUser = await this.dataSource
+                .getRepository(auth_entity_1.Auth)
+                .createQueryBuilder('user')
+                .where('user.username = :username', { username })
+                .getOne();
+            if (existingUser) {
+                throw new common_1.HttpException('User already exists', common_1.HttpStatus.CONFLICT);
+            }
             const hashedPassword = await bcryptjs_1.default.hash(password, 10);
-            const newUser = this.authRepository.create({
-                username,
-                password: hashedPassword,
-            });
-            return await this.authRepository.save(newUser);
+            const result = await this.dataSource
+                .createQueryBuilder()
+                .insert()
+                .into(auth_entity_1.Auth)
+                .values({ username, password: hashedPassword })
+                .execute();
+            const userId = result.identifiers[0].id;
+            const jwtSecret = this.configService.get('JWT_SECRET');
+            if (!jwtSecret) {
+                throw new common_1.HttpException('JWT_SECRET is not configured', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            const token = jsonwebtoken_1.default.sign({ id: userId, username }, jwtSecret, { expiresIn: '7d' });
+            return {
+                message: 'User successfully created',
+                token,
+                userId
+            };
         }
         catch (error) {
-            if (error instanceof Error) {
-                throw new common_1.HttpException(`User registration failed: ${error.message}`, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            throw new common_1.HttpException('User registration failed due to unknown error', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+            if (error instanceof common_1.HttpException)
+                throw error;
+            throw new common_1.HttpException('Failed to create new user', common_1.HttpStatus.BAD_REQUEST);
         }
     }
     async loginUser(dto) {
         const { username, password } = dto;
-        const user = await this.authRepository.findOne({ where: { username } });
+        const user = await this.dataSource
+            .getRepository(auth_entity_1.Auth)
+            .createQueryBuilder('user')
+            .where('user.username = :username', { username })
+            .addSelect('user.password')
+            .getOne();
         if (!user) {
             throw new common_1.HttpException('Invalid credentials', common_1.HttpStatus.UNAUTHORIZED);
-        }
-        if (!user.password) {
-            throw new common_1.HttpException('User has no password set', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         const isPasswordValid = await bcryptjs_1.default.compare(password, user.password);
         if (!isPasswordValid) {
             throw new common_1.HttpException('Invalid credentials', common_1.HttpStatus.UNAUTHORIZED);
         }
-        if (!process.env.JWT_SECRET) {
-            throw new common_1.HttpException('JWT secret not set', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
         const jwtSecret = this.configService.get('JWT_SECRET');
         if (!jwtSecret) {
-            throw new common_1.HttpException('JWT secret not set', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new common_1.HttpException('JWT_SECRET is not configured', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         const token = jsonwebtoken_1.default.sign({ id: user.id, username: user.username }, jwtSecret, { expiresIn: '7d' });
         return { token, user };
@@ -97,6 +111,7 @@ exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(auth_entity_1.Auth)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.DataSource,
         config_1.ConfigService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

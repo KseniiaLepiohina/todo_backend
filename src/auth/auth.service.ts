@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Auth } from './entities/auth.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 
@@ -11,88 +11,104 @@ import { ConfigService } from '@nestjs/config';
 export class AuthService {
   constructor(
     @InjectRepository(Auth) private authRepository: Repository<Auth>,
-    private configService:ConfigService
-  ) {}
+    private dataSource: DataSource,
+    private configService: ConfigService
+  ) { }
 
   async signUpUser(createAuthDto: CreateAuthDto) {
     const { username, password } = createAuthDto;
 
-    // Перевірка на унікальність
-    const existingUser = await this.authRepository.findOne({
-      where: { username },
-    });
-
-    if (existingUser) {
-      throw new HttpException('User already exists', HttpStatus.CONFLICT);
-    }
     try {
-      const hashedPassword: string = await bcrypt.hash(password, 10);
-      const newUser = this.authRepository.create({
-        username,
-        password: hashedPassword,
-      });
+      // 1. Check uniqueness (Must call .getOne()!)
+      const existingUser = await this.dataSource
+        .getRepository(Auth)
+        .createQueryBuilder('user')
+        .where('user.username = :username', { username })
+        .getOne();
 
-      return await this.authRepository.save(newUser);
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new HttpException(
-          `User registration failed: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+      if (existingUser) {
+        throw new HttpException('User already exists', HttpStatus.CONFLICT);
       }
-      throw new HttpException(
-        'User registration failed due to unknown error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+
+      // 2. Hash and Insert
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const result = await this.dataSource
+        .createQueryBuilder()
+        .insert()
+        .into(Auth)
+        .values({ username, password: hashedPassword })
+        .execute();
+
+      // The 'result' contains the generated ID
+      const userId = result.identifiers[0].id;
+
+      // 3. Generate Token
+      const jwtSecret = this.configService.get<string>('JWT_SECRET');
+      if (!jwtSecret) {
+        throw new HttpException('JWT_SECRET is not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      const token = jwt.sign(
+        { id: userId, username },
+        jwtSecret,
+        { expiresIn: '7d' }
       );
+
+      return {
+        message: 'User successfully created',
+        token,
+        userId
+      };
+
+    } catch (error) {
+      // Pass through our specific 'Conflict' error, otherwise throw generic
+      if (error instanceof HttpException) throw error;
+      throw new HttpException('Failed to create new user', HttpStatus.BAD_REQUEST);
     }
   }
 
   // auth.service.ts
-async loginUser(dto: CreateAuthDto) {
-  const { username, password } = dto;
+  async loginUser(dto: CreateAuthDto) {
+    const { username, password } = dto;
 
-  // Знаходимо користувача по username
-  const user = await this.authRepository.findOne({ where: { username } });
+    // 1. Fetch user (including hidden password)
+    const user = await this.dataSource
+      .getRepository(Auth)
+      .createQueryBuilder('user')
+      .where('user.username = :username', { username })
+      .addSelect('user.password')
+      .getOne();
 
-  if (!user) {
-    throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    if (!user) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+
+    // 2. Password Verification
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+
+    // 3. Token Generation
+    const jwtSecret = this.configService.get<string>('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new HttpException('JWT_SECRET is not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    const token = jwt.sign(
+      { id: user.id, username: user.username },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    return { token, user };
   }
-
-  if (!user.password) {
-    throw new HttpException('User has no password set', HttpStatus.INTERNAL_SERVER_ERROR);
-  }
-
-  // Порівняння пароля
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-  }
-
-  if (!process.env.JWT_SECRET) {
-    throw new HttpException('JWT secret not set', HttpStatus.INTERNAL_SERVER_ERROR);
-  }
-
-  // Генеруємо токен
-  const jwtSecret = this.configService.get<string>('JWT_SECRET');
-  if (!jwtSecret) {
-    throw new HttpException('JWT secret not set', HttpStatus.INTERNAL_SERVER_ERROR);
-  }
-
-  const token = jwt.sign(
-    { id: user.id, username: user.username },
-    jwtSecret,
-    { expiresIn: '7d' }
-  );
-
-  return { token, user };
-}
 
 
   async findAllUsers() {
     return await this.authRepository.find();
   }
 
-  async findOneUser(username:string) {
+  async findOneUser(username: string) {
     try {
       const findOneUser = await this.authRepository.findOne({ where: { username } });
       if (!findOneUser) {
@@ -106,6 +122,6 @@ async loginUser(dto: CreateAuthDto) {
       );
     }
   }
-  
- 
+
+
 }

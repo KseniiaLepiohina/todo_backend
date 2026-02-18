@@ -54,14 +54,14 @@ let TaskService = class TaskService {
             const tasks = await this.dataSource
                 .createQueryBuilder(ActiveTasks_entity_1.ActiveTasks, 'task')
                 .select([
-                'task.taskId',
+                'task.task_id',
                 'task.title',
                 'task.description',
                 'task.completed',
                 'task.createdAt',
             ])
                 .where('task.completed = :completed', { completed: false })
-                .andWhere('task.userId = :user_id', { user_id })
+                .andWhere('task.user_id = :user_id', { user_id })
                 .getMany();
             return tasks;
         }
@@ -78,7 +78,7 @@ let TaskService = class TaskService {
                 title: dto.title,
                 description: dto.description,
             })
-                .where('taskId = :id', { id })
+                .where('task_id = :id', { id })
                 .returning('*')
                 .execute();
             if (!result.affected) {
