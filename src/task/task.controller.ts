@@ -21,7 +21,7 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
 }
 
   @Get('active')
-  @UseGuards(JwtGuard)
+  // @UseGuards(JwtGuard)
   async findActiveTasks(@Req() req) {
     const user_id = req.user?.id;
     if (!user_id) throw new UnauthorizedException('User not found in request');
