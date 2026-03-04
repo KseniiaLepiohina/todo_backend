@@ -21,7 +21,7 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
   return await this.taskService.createTask(createTaskDto, user_id);
 }
 
-  @Get('active')
+ @Get('active')
  @UseGuards(JwtGuard)
  @ApiBearerAuth('token')
  @ApiOperation({ summary: 'Retrieve all active tasks for the logged-in user' })
@@ -30,7 +30,8 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
     if (!user_id) throw new UnauthorizedException('User not found in request');
     return await this.taskService.findAllActiveTasks(user_id);
   }
- @ApiBearerAuth('token')
+
+  @ApiBearerAuth('token')
   @Patch('active/update/:id')
   async updateActiveTask(
     @Param('id') id: number,
@@ -38,22 +39,27 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
   ) {
     return await this.taskService.updateActiveTask(id, dto);
   }
- @ApiBearerAuth('token')
-  @Delete('active/delete/:taskId/:userId')
+
+  @ApiBearerAuth('token')
+  @Delete('active/delete/:taskId')
   async deleteActiveTask(
     @Param('taskId') task_id: number,
     @Param('userId') user_id: number,
   ) {
     return await this.taskService.deleteActiveTask(task_id, user_id);
   };
- @ApiBearerAuth('token')
-@Post('/completed/:userId/:taskId') 
+
+
+@ApiBearerAuth('token')
+@Post('/completed/:task_id') 
 async newCompletedTask (
 @Param('task_id') task_id:number,
-@Param('user_id') user_id:number
+// @Param('user_id') user_id:number
 ) {
-  return await this.taskService.sendToCompletedTask(user_id,task_id)
+  console.log('Backend received:', {  task_id });
+  return await this.taskService.sendToCompletedTask(task_id)
 }
+
  @ApiBearerAuth('token')
   @Get('completed/find')
   async findCompletedTasks() {

@@ -50,6 +50,7 @@ async findAllActiveTasks(user_id: number) {
         'task.description',
         'task.completed',
         'task.createdAt',
+        'task.user_id'
       ])
       .where('task.completed = :completed', { completed: false })
       .andWhere('task.user_id = :user_id', { user_id })
@@ -112,12 +113,12 @@ async updateActiveTask(id: number, dto: UpdateTaskDto) {
   // === Completed Tasks ===
 
 
-async sendToCompletedTask(user_id: number, task_id: number) {
+async sendToCompletedTask(task_id: number) {
   const activeTask = await this.dataSource
     .createQueryBuilder(ActiveTasks, 'a')
     .where('a.completed = false')
     .andWhere('a.task_id = :task_id', { task_id })
-    .andWhere('a.userId = :userId', { user_id })
+    // .andWhere('a.user_id = :user_id', { user_id })
     .getOne();
 
   if (!activeTask) {
@@ -132,7 +133,7 @@ async sendToCompletedTask(user_id: number, task_id: number) {
       title: activeTask.title,
       description: activeTask.description,
       completed: true,
-      user_id: activeTask.user_id,
+      // user_id: activeTask.user_id,
       completedAt: new Date(),
     })
     .returning('*')
@@ -194,7 +195,7 @@ async deleteCompletedTask(task_id:number, user_id:number) {
         .createQueryBuilder()
         .delete()
         .from(CompletedTasks)
-        .where('id = :task_id AND user_id = :user_id')
+.where('id = :task_id AND user_id = :user_id', { task_id, user_id }) 
         .execute();
         if(deletedTask.affected === 0) {
           throw new NotFoundException(
