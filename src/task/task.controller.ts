@@ -51,11 +51,7 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
   };
 
 
-// @ApiBearerAuth('token')
-// @Patch('completed/:task_id') 
-// async updateCompletedTasks(@Param('task_id') task_id: number) {
-//   return this.taskService.sendToCompletedTask(task_id);
-// }
+
 @ApiBearerAuth('token')
 @Post('completed/add')
 async addToCompletedTasks(@Req() req, @Body() task: ActiveTasks) {
