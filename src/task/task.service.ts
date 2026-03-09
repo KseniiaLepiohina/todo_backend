@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { ActiveTasks } from './entities/ActiveTasks.entity';
 import { CompletedTasks } from './entities/CompletedTasks.entity';
+import { CreateCompletedTaskDto } from './dto/create-completed-task.dto';
 
 @Injectable()
 export class TaskService {
@@ -114,7 +115,7 @@ async updateActiveTask(id: number, dto: UpdateTaskDto) {
 
 
 
-async addToCompletedTasks(task: ActiveTasks, user_id: number) {
+async addToCompletedTasks(task: CreateCompletedTaskDto, user_id: number) {
   try {
     const result = await this.dataSource
       .createQueryBuilder()

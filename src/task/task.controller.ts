@@ -5,6 +5,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { JwtGuard } from 'src/jwt.guard';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ActiveTasks } from './entities/ActiveTasks.entity';
+import { CreateCompletedTaskDto } from './dto/create-completed-task.dto';
 
 @Controller('task')
 export class TaskController {
@@ -50,15 +51,9 @@ async create(@Body() createTaskDto: CreateTaskDto, @Req() req) {
     return await this.taskService.deleteActiveTask(task_id, user_id);
   };
 
-
-// @ApiBearerAuth('token')
-// @Patch('completed/:task_id') 
-// async updateCompletedTasks(@Param('task_id') task_id: number) {
-//   return this.taskService.sendToCompletedTask(task_id);
-// }
 @ApiBearerAuth('token')
 @Post('completed/add')
-async addToCompletedTasks(@Req() req, @Body() task: ActiveTasks) {
+async addToCompletedTasks(@Req() req, @Body() task: CreateCompletedTaskDto) {
   const userId = req.user.id; 
   return this.taskService.addToCompletedTasks(task, userId);
 }
