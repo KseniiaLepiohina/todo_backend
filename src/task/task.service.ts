@@ -132,7 +132,6 @@ async addToCompletedTasks(task: CreateCompletedTaskDto, user_id: number) {
       ])
       .returning('*')
       .execute();
-
     return result.raw[0]; 
   } catch (error) {
     console.error(error); 
