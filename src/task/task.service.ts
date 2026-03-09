@@ -113,43 +113,33 @@ async updateActiveTask(id: number, dto: UpdateTaskDto) {
   // === Completed Tasks ===
 
 
-async sendToCompletedTask(task_id: number) {
-  const activeTask = await this.dataSource
-    .createQueryBuilder(ActiveTasks, 'a')
-    .where('a.completed = false')
-    .andWhere('a.task_id = :task_id', { task_id })
-    // .andWhere('a.user_id = :user_id', { user_id })
-    .getOne();
 
-  if (!activeTask) {
-    throw new NotFoundException('Task not found or already completed');
+async addToCompletedTasks(task: ActiveTasks, user_id: number) {
+  try {
+    const result = await this.dataSource
+      .createQueryBuilder()
+      .insert()
+      .into(CompletedTasks)
+      .values([
+        {
+          userId: user_id,          
+          title: task.title,
+          description: task.description, 
+          completed: true,
+          completedAt: new Date(),    
+        },
+      ])
+      .returning('*')
+      .execute();
+    return result.raw[0]; 
+  } catch (error) {
+    console.error(error); 
+    throw new HttpException(
+      'Failed to add to completed tasks lists',
+      HttpStatus.BAD_REQUEST,
+    );
   }
-
-  const completedTask = await this.dataSource
-    .createQueryBuilder()
-    .insert()
-    .into(CompletedTasks)
-    .values({
-      title: activeTask.title,
-      description: activeTask.description,
-      completed: true,
-      // user_id: activeTask.user_id,
-      completedAt: new Date(),
-    })
-    .returning('*')
-    .execute();
-
-  await this.dataSource
-    .createQueryBuilder()
-    .delete()
-    .from(ActiveTasks)
-    .where('task_id = :id', { id: activeTask.task_id })
-    .execute();
-
-  return completedTask.raw[0];
 }
-
-
   async findAllCompletedTasks() {
   try{
     const tasks = await this.dataSource
@@ -160,7 +150,7 @@ async sendToCompletedTask(task_id: number) {
   'task.description',
   'task.completed',
   'task.completedAt',
-  'task.user_id',
+  'task.user_id'
     ])
     .where('task.completed = :completed', { completed: true })
     .getMany();

@@ -18,10 +18,10 @@ export class CompletedTasks {
 
   @CreateDateColumn({ type: 'timestamp' })
   completedAt: Date;
+  @Column({name:'userId'})
+  userId: number;
 
   @ManyToOne(() => Auth, (auth) => auth.completedTasks,{ onDelete: 'CASCADE' })
-  @JoinColumn({name:'userId'})
+  @JoinColumn({name:'user_id'})
   user: Auth;
-  @Column({name:'userId'})
-  user_id: number;
 }
