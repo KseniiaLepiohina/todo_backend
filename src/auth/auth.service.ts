@@ -57,17 +57,14 @@ export class AuthService {
       };
 
     } catch (error) {
-      // Pass through our specific 'Conflict' error, otherwise throw generic
       if (error instanceof HttpException) throw error;
       throw new HttpException('Failed to create new user', HttpStatus.BAD_REQUEST);
     }
   }
 
-  // auth.service.ts
   async loginUser(dto: CreateAuthDto) {
     const { username, password } = dto;
 
-    // 1. Fetch user (including hidden password)
     const user = await this.dataSource
       .getRepository(Auth)
       .createQueryBuilder('user')
@@ -79,13 +76,11 @@ export class AuthService {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
 
-    // 2. Password Verification
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
 
-    // 3. Token Generation
     const jwtSecret = this.configService.get<string>('JWT_SECRET');
     if (!jwtSecret) {
       throw new HttpException('JWT_SECRET is not configured', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -98,26 +93,5 @@ export class AuthService {
 
     return { token, user };
   }
-
-
-  async findAllUsers() {
-    return await this.authRepository.find();
-  }
-
-  async findOneUser(username: string) {
-    try {
-      const findOneUser = await this.authRepository.findOne({ where: { username } });
-      if (!findOneUser) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-      }
-      return findOneUser;
-    } catch {
-      throw new HttpException(
-        'Error fetching user',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
 
 }
